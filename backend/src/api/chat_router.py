@@ -9,6 +9,6 @@ async def handle_chat(request: ChatRequest):
     """
     Este endpoint ahora llama al flow de RAG.
     """
-    final_answer = await run_flow(request.message)
+    final_answer = await run_flow(request.message, request.thread_id)
 
     return ChatResponse(reply=final_answer)
