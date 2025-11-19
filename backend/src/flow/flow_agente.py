@@ -1,31 +1,89 @@
+from typing import Annotated
+from typing_extensions import TypedDict
+
+# --- Imports de LangGraph y LangChain ---
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from langgraph.checkpoint.memory import MemorySaver 
+from langchain_core.messages import HumanMessage, SystemMessage
+
+# --- Tus Imports ---
 from src.prompts.system_prompts import SYSTEM_PROMPT
 from src.tools.tool_buscar_base_conocimientos import buscar_base_conocimientos_tool
-from src.util.util_llm import get_llm_chain
+from src.util.util_llm import get_llm_chain # Asumo que este es tu objeto Gemini (llm)
 
-# 1. Importa el PROMPT del sistema
-print(f"SYSTEM PROMPT: {SYSTEM_PROMPT}...")
+# 1. Definimos el Estado (La lista de mensajes que se guardará en RAM)
+class AgentState(TypedDict):
+    messages: Annotated[list, add_messages]
 
-# 2. Importa el LLM (Gemini)
-print(f"LLM cargado: {get_llm_chain}")
+# 2. Inicializamos la Memoria (Volátil: se borra al reiniciar)
+memory = MemorySaver()
 
-async def run_flow(user_message: str) -> str:
+# 3. Definimos el NODO PRINCIPAL (Aquí ocurre toda la lógica RAG)
+async def call_model(state: AgentState):
+    
+    # a. Obtenemos el último mensaje del usuario desde el historial
+    last_message = state["messages"][-1].content
+    print(f"--- Procesando mensaje: {last_message} ---")
+
+    # b. Fase 1: Retrieval (Buscar en Azure)
+    contexto = buscar_base_conocimientos_tool(last_message)
+    
+    # c. Filtro de Seguridad
+    if "No se encontró contexto" in contexto or not contexto:
+        # Cortocircuito: Respondemos directamente sin gastar tokens del LLM
+        return {"messages": ["Lo siento, no encontré información oficial sobre eso en mis documentos."]}
+
+    # d. Preparamos el Prompt con el Contexto Fresco
+    # (Esto se hace en cada turno para que el contexto siempre sea relevante a la última pregunta)
+    prompt_actualizado = SYSTEM_PROMPT.format(
+        contexto_de_la_busqueda_rag=contexto,
+        pregunta_del_usuario=last_message
+    )
+    
+    # e. Preparamos la lista de mensajes para Gemini:
+    #    [0] Instrucciones del Sistema (con contexto)
+    #    [1..N] Historial de la conversación (state["messages"])
+    messages_for_llm = [SystemMessage(content=prompt_actualizado)] + state["messages"]
+    
+    # f. Fase 2: Generation (Llamada REAL a Gemini)
+    print("--- Invocando a Gemini ---")
+    # Usamos el objeto LLM que importaste
+    response = await get_llm_chain.ainvoke(messages_for_llm)
+    
+    # Devolvemos la respuesta para que LangGraph la guarde en la memoria
+    return {"messages": [response]}
+
+# 4. Construimos el Grafo
+workflow = StateGraph(AgentState)
+workflow.add_node("anmi_agent", call_model)
+workflow.add_edge(START, "anmi_agent")
+workflow.add_edge("anmi_agent", END)
+
+# 5. Compilamos la aplicación CON memoria
+# Este objeto 'app_graph' es el que mantiene el estado
+app_graph = workflow.compile(checkpointer=memory)
+
+# 6. Función Pública (La que llama tu API)
+# AHORA NECESITA thread_id
+async def run_flow(user_message: str, thread_id: str) -> str:
     """
-    Función principal para ejecutar el flujo RAG.
+    Ejecuta el flujo RAG con memoria.
     """
     
-    # Fase 1: Retrieval
-    contexto = buscar_base_conocimientos_tool(user_message)
-    print(f"Contexto recuperado: {contexto}...")
-
-    if "No se encontró contexto" in contexto:
-        contexto = "No se encontró información relevante en la base de conocimientos."
-
-    # Fase 2: Generation
-    # TODO: Usar el LLM con el prompt del sistema y el contexto recuperado
-    # response = get_llm_chain.invoke(f"{ANMI_SYSTEM_PROMPT} ... {contexto} ... {user_message}")
-    print("TODO: Implementar llamada a Gemini...")
-
-    # Por ahora, solo devolvemos un mensaje simulado.
-    response = f"Respuesta simulada basada en el contexto: {contexto} y el mensaje del usuario: {user_message}"
-
-    return response
+    # Configuración de sesión (La clave para recuperar la memoria correcta)
+    config = {"configurable": {"thread_id": thread_id}}
+    
+    # Ejecutamos el grafo pasando el nuevo mensaje
+    input_message = HumanMessage(content=user_message)
+    
+    # ainvoke corre el grafo y guarda el estado automáticamente
+    final_state = await app_graph.ainvoke(
+        {"messages": [input_message]}, 
+        config=config
+    )
+    
+    # Extraemos el texto de la última respuesta del bot
+    bot_response = final_state["messages"][-1].content
+    
+    return bot_response
