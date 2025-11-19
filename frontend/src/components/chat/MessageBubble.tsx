@@ -16,7 +16,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     message.text.includes("| ") || // Tiene tablas markdown
     (message.text.includes("##") && message.text.length > 200);
   const showDownloadButton =
-    message.isBot && message.id !== 1;
+    message.isBot && message.id !== 1 && hasNutritionalContent;
   return (
     <div
       className={`flex gap-3 animate-[fadeIn_0.3s_ease-out] ${
