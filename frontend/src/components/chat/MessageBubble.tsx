@@ -2,12 +2,21 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Message } from "../../types/chat";
+import { generateAnmiPDF } from "../../utils/pdfGenerator";
 
 interface MessageBubbleProps {
   message: Message;
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+  const hasNutritionalContent =
+    message.text.includes("Ingredientes") ||
+    message.text.includes("Preparación") ||
+    message.text.includes("Valor nutricional") ||
+    message.text.includes("| ") || // Tiene tablas markdown
+    (message.text.includes("##") && message.text.length > 200);
+  const showDownloadButton =
+    message.isBot && message.id !== 1 && hasNutritionalContent;
   return (
     <div
       className={`flex gap-3 animate-[fadeIn_0.3s_ease-out] ${
@@ -147,12 +156,35 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             {message.text}
           </ReactMarkdown>
         </div>
-        <span className="text-xs opacity-70 block">
-          {message.timestamp.toLocaleTimeString("es-PE", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </span>
+        <div className="flex items-center justify-between text-xs opacity-70">
+          <span>
+            {message.timestamp.toLocaleTimeString("es-PE", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+          {showDownloadButton && (
+            <button
+              onClick={() => generateAnmiPDF(message.text)}
+              className="flex items-center gap-1.5 text-xs font-medium text-teal-600 hover:text-teal-800 hover:bg-teal-50 px-2 py-1 rounded-md transition-colors"
+              title="Guardar esta información en mi dispositivo"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="w-4 h-4"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M4.5 2A1.5 1.5 0 003 3.5v13A1.5 1.5 0 004.5 18h11a1.5 1.5 0 001.5-1.5V7.621a1.5 1.5 0 00-.44-1.06l-4.12-4.122A1.5 1.5 0 0011.378 2H4.5zm2.25 8.5a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5zm0 3a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Descargar Ficha
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
