@@ -42,6 +42,46 @@ PALABRAS_RUIDO = [
     "PARTICIPARON EN LA REVISIÓN",
     "UNICEF",
     "Colegio de Nutricionistas del Perú"
+# Additional noise patterns observed in output_chunks.json
+# (headers, índices, pies de página, créditos y metadatos administrativos)
+    , "MINISTERIO DE SALUD"
+    , "INSTITUTO NACIONAL DE SALUD"
+    , "INSTITUTO NACIONAL DE SALUD - CENAN"
+    , "ELABORADO POR"
+    , "ASISTENCIA TÉCNICA OPS"
+    , "FOTOGRAFÍA"
+    , "DISEÑO Y DIAGRAMACIÓN"
+    , "RESOLUCIÓN MINISTERIAL"
+    , "RESOLUCIÓN"
+    , "ÍNDICE"
+    , "CONTENIDO"
+    , "INTRODUCCIÓN"
+    , "ANEXO"
+    , "ANEXO Nº"
+    , "Página"
+    , "PÁGINA"
+    , "PAGE"
+    , "GUÍAS ALIMENTARIAS"
+    , "GUÍAS ALIMENTARIAS PARA NIÑAS Y NIÑOS"
+    , "ELABORADO POR"
+    , "PARTICIPARON EN LA REVISIÓN Y VALIDACIÓN"
+    , "ASISTENCIA TÉCNICA OPS/OMS"
+    , "www."
+    , "................................................................"
+    # Figure / Table / Source markers often not relevant
+    , "FIGURA"
+    , "FIGURA Nº"
+    , "FIGURA N°"
+    , "FIGURE"
+    , "FIG."
+    # , "TABLA"
+    # , "TABLA Nº"
+    # , "TABLA N°"
+    # , "TABLE"
+    # , "TAB."
+    , "FUENTE"
+    , "FUENTE:"
+    , "Fuente:"
 # we'll normalize to lowercase at runtime
 ]
 # -------------------------------------
@@ -113,6 +153,17 @@ def load_and_split_pdfs(data_folder: Path):
             # normalize whitespace and lower
             content_clean = re.sub(r"\s+", " ", content)
             content_lower = content_clean.lower()
+
+            # Heuristic: drop chunks that are mostly numeric / punctuation (tables, long numeric rows)
+            alpha_chars = sum(1 for ch in content_clean if ch.isalpha())
+            if len(content_clean) > 0:
+                alpha_ratio = alpha_chars / len(content_clean)
+            else:
+                alpha_ratio = 0
+            # If content is short and has very few alphabetic chars, treat as noise
+            if len(content_clean) < 300 and alpha_ratio < 0.25:
+                chunks_filtrados += 1
+                continue
 
             # filter by minimal length (helps drop headers/footers)
             if len(content_clean) < MIN_CHUNK_CHARS:
