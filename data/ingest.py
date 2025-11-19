@@ -1,9 +1,15 @@
 import os
 import uuid
 import json
+import re
 import argparse
 from pathlib import Path
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except Exception:
+    # If python-dotenv isn't installed, provide a no-op load_dotenv so dry-run still works
+    def load_dotenv(*args, **kwargs):
+        return
 
 # --- Carga de Documentos (PDF) ---
 # Necesitarás: pip install langchain-community pypdf
@@ -36,12 +42,15 @@ PALABRAS_RUIDO = [
     "PARTICIPARON EN LA REVISIÓN",
     "UNICEF",
     "Colegio de Nutricionistas del Perú"
+# we'll normalize to lowercase at runtime
 ]
 # -------------------------------------
 
 # --- UMBRAL DE RUIDO ---
-# El chunk se considera "ruido" si tiene 2 o más palabras clave
-RUIDO_THRESHOLD = 2 
+# El chunk se considera "ruido" si contiene al menos 1 palabra clave
+RUIDO_THRESHOLD = 1
+# Mínimo de caracteres para considerar un chunk válido
+MIN_CHUNK_CHARS = 40
 # -------------------------------------
 
 def get_search_client():
@@ -86,36 +95,74 @@ def load_and_split_pdfs(data_folder: Path):
         loader = PyPDFLoader(str(pdf_path))
         documents = loader.load()
         chunks = text_splitter.split_documents(documents)
-        
+
         print(f"  > Se dividió en {len(chunks)} trozos. Aplicando filtros...")
-        
+
         chunks_filtrados = 0
+        kept = 0
+        # normalize noise words once
+        noise_words = [w.lower() for w in PALABRAS_RUIDO]
         for i, chunk in enumerate(chunks):
-            
-            # --- LÓGICA DE LIMPIEZA MEJORADA (POR UMBRAL) ---
-            ruido_count = 0
-            for palabra in PALABRAS_RUIDO:
-                if palabra in chunk.page_content:
-                    ruido_count += 1
-            
-            # Solo filtramos si el conteo supera el umbral
+            content = (chunk.page_content or "").strip()
+
+            # skip empty content
+            if not content:
+                chunks_filtrados += 1
+                continue
+
+            # normalize whitespace and lower
+            content_clean = re.sub(r"\s+", " ", content)
+            content_lower = content_clean.lower()
+
+            # filter by minimal length (helps drop headers/footers)
+            if len(content_clean) < MIN_CHUNK_CHARS:
+                chunks_filtrados += 1
+                continue
+
+            # count noise keywords (case-insensitive)
+            ruido_count = sum(1 for palabra in noise_words if palabra in content_lower)
+
             if ruido_count >= RUIDO_THRESHOLD:
                 chunks_filtrados += 1
-                continue # Saltar este chunk
-            # ------------------------------------------
+                continue
 
-            # Este chunk está limpio, lo preparamos
+            # Try to get a sensible page number from metadata
+            page_number = 0
+            meta = getattr(chunk, "metadata", {}) or {}
+            for key in ("page", "page_number", "page_num", "pageno", "pageIndex"):
+                if key in meta:
+                    try:
+                        page_number = int(meta[key])
+                    except Exception:
+                        # sometimes metadata already is 1-based or text; ignore
+                        try:
+                            page_number = int(str(meta[key]).strip())
+                        except Exception:
+                            page_number = 0
+                    break
+
+            # If page_number looks like 0 but chunk has page markers in text, attempt to detect
+            if page_number == 0:
+                m = re.search(r"\bPagina\s*(\d{1,4})\b|\bpage\s*(\d{1,4})\b", content_lower, re.IGNORECASE)
+                if m:
+                    pg = m.group(1) or m.group(2)
+                    try:
+                        page_number = int(pg)
+                    except Exception:
+                        page_number = 0
+
             azure_doc = {
                 "id": str(uuid.uuid4()),
-                "content": chunk.page_content,
+                "content": content_clean,
                 "title": pdf_path.name,
-                "page": chunk.metadata.get("page", 0) + 1,
+                "page": page_number,
                 "chunk_index": i,
                 "tags": [pdf_path.name]
             }
             all_chunks.append(azure_doc)
-            
-        print(f"  > Se filtraron {chunks_filtrados} trozos de 'ruido' (umbral={RUIDO_THRESHOLD}).")
+            kept += 1
+
+        print(f"  > Se filtraron {chunks_filtrados} trozos de 'ruido' (umbral={RUIDO_THRESHOLD}). Mantenidos: {kept}.")
             
     return all_chunks
 

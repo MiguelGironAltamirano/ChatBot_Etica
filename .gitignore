@@ -15,3 +15,5 @@ node_modules/
 # Ignora la carpeta de "compilación"
 dist/
 dist-ssr/
+
+output_chunks.json
