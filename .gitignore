@@ -1,0 +1,17 @@
+# === Archivos de Entorno ===
+# Ignora TODAS las claves de API y secretos
+.env
+.env.*
+
+# === Backend (Python) ===
+# Ignora la "maleta" del entorno virtual
+venv/
+*.pyc
+__pycache__/
+
+# === Frontend (React/Vite) ===
+# Ignora la "maleta" de Node (que pesa gigas)
+node_modules/
+# Ignora la carpeta de "compilación"
+dist/
+dist-ssr/
