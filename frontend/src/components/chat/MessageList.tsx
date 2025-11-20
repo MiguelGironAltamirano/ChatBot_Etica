@@ -9,17 +9,35 @@ interface MessageListProps {
 
 const MessageList: React.FC<MessageListProps> = ({ messages, isTyping }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null)
+    const containerRef = useRef<HTMLDivElement>(null)
+    const [shouldAutoScroll, setShouldAutoScroll] = React.useState(true)
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+        if (shouldAutoScroll) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+        }
+    }
+
+    // Check if user is near bottom to enable/disable auto-scroll
+    const handleScroll = () => {
+        if (containerRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = containerRef.current
+            // If user is within 100px of the bottom, enable auto-scroll
+            const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+            setShouldAutoScroll(isNearBottom)
+        }
     }
 
     useEffect(() => {
         scrollToBottom()
-    }, [messages, isTyping])
+    }, [messages, isTyping, shouldAutoScroll])
 
     return (
-        <div className="flex-1 overflow-y-auto p-3 md:p-6 bg-teal-50 flex flex-col gap-3 md:gap-4">
+        <div
+            ref={containerRef}
+            onScroll={handleScroll}
+            className="flex-1 overflow-y-auto p-3 md:p-6 bg-teal-50 flex flex-col gap-3 md:gap-4"
+        >
             {messages.map((message) => (
                 <MessageBubble key={message.id} message={message} />
             ))}

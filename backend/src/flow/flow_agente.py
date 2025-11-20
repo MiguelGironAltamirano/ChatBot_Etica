@@ -1,6 +1,7 @@
 from typing import Annotated
 from typing_extensions import TypedDict
-
+import asyncio
+import random
 # --- Imports de LangGraph y LangChain ---
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
@@ -87,3 +88,42 @@ async def run_flow(user_message: str, thread_id: str) -> str:
     bot_response = final_state["messages"][-1].content
     
     return bot_response
+
+async def run_flow_stream(user_message: str, thread_id: str):
+    """
+    Streaming estilo ChatGPT:
+    - Palabras con velocidad variable leve
+    - Sin pausas incómodas
+    - Suave y natural
+    """
+    
+    config = {"configurable": {"thread_id": thread_id}}
+    input_message = HumanMessage(content=user_message)
+
+    buffer = ""
+
+    async for event in app_graph.astream_events(
+        {"messages": [input_message]},
+        config=config,
+        version="v2"
+    ):
+        if event["event"] == "on_chat_model_stream":
+            chunk = event["data"]["chunk"].content
+            if not chunk:
+                continue
+
+            buffer += chunk
+
+            # Emitir una palabra cuando aparece espacio
+            while " " in buffer:
+                word, buffer = buffer.split(" ", 1)
+
+                # Emitir la palabra
+                yield word + " "
+
+                # Velocidad tipo ChatGPT (rápido, suave, ligeramente aleatorio)
+                await asyncio.sleep(random.uniform(0.010, 0.020))
+
+    # Emitir cualquier resto al final
+    if buffer:
+        yield buffer
