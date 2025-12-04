@@ -2,6 +2,13 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { endpoints } from '../services/api'
 import type { Message } from '../types/chat'
 
+// Mensajes de espera que se mostrarán si hay demora
+const WAITING_MESSAGES = [
+    "Estoy despertando, dame unos segundos... ☕",
+    "Estoy iniciando, un momento por favor... 🌱",
+    "Preparándome para ayudarte, ya casi... 💚"
+]
+
 export const useChat = () => {
     const [messages, setMessages] = useState<Message[]>([
         {
@@ -13,12 +20,14 @@ export const useChat = () => {
     ])
     const [inputValue, setInputValue] = useState('')
     const [isTyping, setIsTyping] = useState(false)
+    const [slowResponseMessage, setSlowResponseMessage] = useState<string | null>(null)
     const threadIdRef = useRef(crypto.randomUUID())
 
     // Queue for smooth streaming
     const streamQueue = useRef<string[]>([])
     const isStreaming = useRef(false)
     const currentBotMessageId = useRef<string | number | null>(null)
+    const slowResponseTimerRef = useRef<NodeJS.Timeout | null>(null)
 
     // Process the stream queue
     useEffect(() => {
@@ -31,6 +40,8 @@ export const useChat = () => {
                         if (!msgExists) {
                             // Ocultamos el indicador de "escribiendo" apenas comienza a salir texto
                             setIsTyping(false)
+                            // Ocultar mensaje de espera cuando llega la respuesta
+                            setSlowResponseMessage(null)
 
                             return [...prev, {
                                 id: currentBotMessageId.current!,
@@ -55,9 +66,25 @@ export const useChat = () => {
         return () => clearInterval(interval)
     }, [])
 
+    // Limpiar timer al desmontar
+    useEffect(() => {
+        return () => {
+            if (slowResponseTimerRef.current) {
+                clearTimeout(slowResponseTimerRef.current)
+            }
+        }
+    }, [])
+
     const sendMessageToApi = async (text: string) => {
         setIsTyping(true)
         isStreaming.current = true
+        setSlowResponseMessage(null)
+
+        // Iniciar timer para mostrar mensaje de espera después de 3 segundos
+        slowResponseTimerRef.current = setTimeout(() => {
+            const randomMessage = WAITING_MESSAGES[Math.floor(Math.random() * WAITING_MESSAGES.length)]
+            setSlowResponseMessage(randomMessage)
+        }, 3000)
 
         // Create a placeholder message for the bot response
         const botMessageId = crypto.randomUUID()
@@ -142,6 +169,12 @@ export const useChat = () => {
             }
             setMessages(prev => [...prev, errorResponse])
         } finally {
+            // Limpiar timer de respuesta lenta
+            if (slowResponseTimerRef.current) {
+                clearTimeout(slowResponseTimerRef.current)
+                slowResponseTimerRef.current = null
+            }
+            setSlowResponseMessage(null)
             setIsTyping(false)
             isStreaming.current = false
         }
@@ -178,6 +211,7 @@ export const useChat = () => {
         inputValue,
         setInputValue,
         isTyping,
+        slowResponseMessage,
         handleSendMessage,
         handleQuickOption
     }

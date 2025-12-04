@@ -8,7 +8,7 @@ interface QuickOptionsProps {
 const QuickOptions: React.FC<QuickOptionsProps> = ({ options, onOptionClick }) => {
     return (
         <div className="px-3 py-2 md:px-6 md:py-3 bg-teal-50 border-t border-gray-200 dark:bg-gray-800 dark:border-gray-700 transition-colors duration-300">
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent dark:scrollbar-thumb-gray-600">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
                 {options.map((option, index) => (
                     <button
                         key={index}

@@ -2,3 +2,51 @@
 
 /* Habilitar dark mode con selector de clase en Tailwind v4 */
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* Ocultar scrollbar pero mantener funcionalidad de scroll */
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
+}
+
+/* Scrollbar personalizada para el área de mensajes */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #5eead4; /* Teal-300 */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #14b8a6; /* Teal-500 */
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-thumb {
+  background: #115e59; /* Teal-800 */
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #0d9488; /* Teal-600 */
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #5eead4 transparent;
+}
+
+.dark * {
+  scrollbar-color: #115e59 transparent;
+}

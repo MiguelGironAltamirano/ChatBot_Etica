@@ -29,7 +29,68 @@ export const generateAnmiPDF = (content: string) => {
 
   // --- 2. PROCESAMIENTO DEL CONTENIDO (El "Mini-Parser") ---
 
-  // Función auxiliar para limpiar markdown inline
+  // Función para renderizar texto con negritas inline
+  const renderTextWithBold = (text: string, x: number, y: number, maxWidth: number, fontSize: number = 10, baseColor: number[] = [60, 60, 60]) => {
+    // Dividir el texto en segmentos (normal y bold)
+    const segments: { text: string; bold: boolean }[] = [];
+    const regex = /\*\*(.+?)\*\*/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      // Texto antes del bold
+      if (match.index > lastIndex) {
+        segments.push({ text: text.slice(lastIndex, match.index), bold: false });
+      }
+      // Texto en bold
+      segments.push({ text: match[1], bold: true });
+      lastIndex = regex.lastIndex;
+    }
+    // Texto restante después del último bold
+    if (lastIndex < text.length) {
+      segments.push({ text: text.slice(lastIndex), bold: false });
+    }
+
+    // Si no hay negritas, renderizar normal
+    if (segments.length === 0) {
+      segments.push({ text, bold: false });
+    }
+
+    doc.setFontSize(fontSize);
+    let currentX = x;
+    let currentY = y;
+    const lineHeight = fontSize * 0.5;
+
+    segments.forEach((segment) => {
+      if (segment.bold) {
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(15, 118, 110); // Teal para negritas
+      } else {
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(baseColor[0], baseColor[1], baseColor[2]);
+      }
+
+      const words = segment.text.split(' ');
+      words.forEach((word, idx) => {
+        const wordWithSpace = idx < words.length - 1 ? word + ' ' : word;
+        const wordWidth = doc.getTextWidth(wordWithSpace);
+
+        // Si la palabra no cabe en la línea actual, saltar a la siguiente
+        if (currentX + wordWidth > x + maxWidth) {
+          currentX = x;
+          currentY += lineHeight;
+          checkPageBreak(lineHeight);
+        }
+
+        doc.text(wordWithSpace, currentX, currentY);
+        currentX += wordWidth;
+      });
+    });
+
+    return currentY - y + lineHeight; // Retorna la altura usada
+  };
+
+  // Función auxiliar para limpiar markdown inline (para casos donde no queremos formato)
   const cleanMarkdown = (text: string): string => {
     return text
       .replace(/\*\*(.+?)\*\*/g, "$1") // Quitar negritas
@@ -164,16 +225,16 @@ export const generateAnmiPDF = (content: string) => {
       yPos += textHeight + 4;
     }
 
-    // F. LÍNEAS CON NEGRITAS COMO SUBTÍTULOS
-    else if (line.includes("**") && line.length < 60) {
-      const boldText = cleanMarkdown(line);
+    // F. LÍNEAS CON NEGRITAS COMO SUBTÍTULOS (ej: **PURECITO MORENO**)
+    else if (/^\*\*[^*]+\*\*$/.test(line)) {
+      const boldText = line.replace(/\*\*/g, '');
 
       checkPageBreak(10);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(11);
+      doc.setTextColor(15, 118, 110); // Teal
       doc.text(boldText, margin, yPos);
-      yPos += 6;
+      yPos += 7;
     }
     
     // G. LÍNEAS EN CURSIVA (disclaimers, notas importantes)
@@ -193,21 +254,29 @@ export const generateAnmiPDF = (content: string) => {
       yPos += textHeight + 4;
     }
 
-    // H. TEXTO NORMAL (Párrafos)
+    // H. TEXTO NORMAL (Párrafos) - Ahora con soporte para negritas inline
     else {
       inTable = false; // Resetear flag de tabla
-      const cleanText = cleanMarkdown(line);
 
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.setTextColor(60, 60, 60);
+      // Si el texto contiene negritas, usar la función especial
+      if (line.includes("**")) {
+        checkPageBreak(10);
+        const heightUsed = renderTextWithBold(line, margin, yPos, maxLineWidth, 10, [60, 60, 60]);
+        yPos += heightUsed + 3;
+      } else {
+        const cleanText = cleanMarkdown(line);
 
-      const splitText = doc.splitTextToSize(cleanText, maxLineWidth);
-      const textHeight = splitText.length * 5;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        doc.setTextColor(60, 60, 60);
 
-      checkPageBreak(textHeight);
-      doc.text(splitText, margin, yPos);
-      yPos += textHeight + 3;
+        const splitText = doc.splitTextToSize(cleanText, maxLineWidth);
+        const textHeight = splitText.length * 5;
+
+        checkPageBreak(textHeight);
+        doc.text(splitText, margin, yPos);
+        yPos += textHeight + 3;
+      }
     }
   });
 

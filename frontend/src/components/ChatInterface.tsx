@@ -1,6 +1,7 @@
 import React, { useState } from 'react' 
 import ChatHeader from './chat/ChatHeader'
 import PrivacyModal from './chat/PrivacyModal'
+import SourcesModal from './chat/SourcesModal'
 import MessageList from './chat/MessageList'
 import QuickOptions from './chat/QuickOptions'
 import ChatInput from './chat/ChatInput'
@@ -20,16 +21,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     inputValue,
     setInputValue,
     isTyping,
+    slowResponseMessage,
     handleSendMessage,
     handleQuickOption
   } = useChat()
 
   const [showPrivacyModal, setShowPrivacyModal] = useState(false)
+  const [showSourcesModal, setShowSourcesModal] = useState(false)
 
   const quickOptions = [
-    { icon: '🥬', text: 'Alimentos ricos en hierro' },
-    { icon: '👨‍🍳', text: 'Preparación segura' },
-    { icon: '👶', text: 'Pautas para bebés' }
+    { icon: '🍖', text: '¿Qué alimentos previenen la anemia?' },
+    { icon: '📅', text: '¿Cuántas comidas debe comer mi bebé al día?' },
+    { icon: '🚫', text: '¿Qué alimentos debo evitar?' }
   ]
 
   return (
@@ -39,10 +42,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {/* Contenedor del Chat: Se adapta al fondo del chat */}
       <div className="w-full max-w-4xl h-dvh md:h-[90vh] bg-white dark:bg-gray-800 md:rounded-3xl shadow-2xl flex flex-col overflow-hidden transition-colors duration-300">
 
-        {/* 3. ChatHeader: Le pasamos la función para abrir AJUSTES (además de privacidad) */}
+        {/* ChatHeader: Le pasamos las funciones para abrir modales */}
         <ChatHeader 
-            onOpenPrivacy={() => setShowPrivacyModal(true)} 
-            onOpenSettings={onOpenSettings} // 🚨 NUEVA PROP
+            onOpenSources={() => setShowSourcesModal(true)}
+            onOpenSettings={onOpenSettings}
         />
 
         {/* Privacy Notice Banner: Se adapta al modo oscuro */}
@@ -54,18 +57,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <button
               onClick={() => setShowPrivacyModal(true)}
               className="bg-transparent border-none text-teal-600 font-semibold underline cursor-pointer p-0 hover:text-teal-700
-                dark:text-teal-400 dark:hover:text-teal-300" // Clases de Dark Mode para el link
+                dark:text-teal-400 dark:hover:text-teal-300"
             >
               Ver política
             </button>
           </p>
         </div>
 
-        {/* 4. MessageList: Le pasamos el tamaño de fuente */}
+        {/* MessageList: Le pasamos el tamaño de fuente y mensaje de espera */}
         <MessageList 
             messages={messages} 
             isTyping={isTyping} 
-            fontSizeStyle={fontSizeStyle} // 🚨 NUEVA PROP
+            fontSizeStyle={fontSizeStyle}
+            slowResponseMessage={slowResponseMessage}
         />
 
         <QuickOptions options={quickOptions} onOptionClick={handleQuickOption} />
@@ -81,6 +85,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {showPrivacyModal && (
         <PrivacyModal onClose={() => setShowPrivacyModal(false)} />
       )}
+
+      <SourcesModal 
+        isOpen={showSourcesModal} 
+        onClose={() => setShowSourcesModal(false)} 
+      />
     </div>
   )
 }
