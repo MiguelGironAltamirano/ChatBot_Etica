@@ -40,17 +40,27 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
         {/* 1. Ajuste del Modo Oscuro */}
         <div className="flex items-center justify-between border-b pb-4 mb-4 border-gray-200 dark:border-gray-700">
-          <label htmlFor="dark-mode-toggle" className="text-gray-700 dark:text-gray-300 text-base font-medium">
-            Modo Oscuro
-          </label>
-          {/* Toggle Switch Simple (puedes usar un componente más avanzado si lo deseas) */}
+          <div className="flex items-center gap-3">
+            {/* Icono Sol/Luna dinámico */}
+            <span className="text-2xl">
+              {isDarkMode ? '🌙' : '☀️'}
+            </span>
+            <label htmlFor="dark-mode-toggle" className="text-gray-700 dark:text-gray-300 text-base font-medium">
+              {isDarkMode ? 'Modo Oscuro' : 'Modo Claro'}
+            </label>
+          </div>
+          {/* Toggle Switch mejorado con iconos */}
           <button 
             onClick={toggleDarkMode}
-            className={`relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 dark:focus:ring-offset-gray-800 ${isDarkMode ? 'bg-teal-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+            className={`relative inline-flex shrink-0 h-8 w-16 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 dark:focus:ring-offset-gray-800 ${isDarkMode ? 'bg-indigo-600' : 'bg-amber-400'}`}
           >
+            {/* Iconos dentro del toggle */}
+            <span className="absolute left-1 top-1/2 -translate-y-1/2 text-xs">☀️</span>
+            <span className="absolute right-1 top-1/2 -translate-y-1/2 text-xs">🌙</span>
+            {/* Círculo deslizante */}
             <span 
               aria-hidden="true" 
-              className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200 ${isDarkMode ? 'translate-x-5' : 'translate-x-0'}`}
+              className={`pointer-events-none inline-block h-6 w-6 rounded-full bg-white shadow-lg transform ring-0 transition-all ease-in-out duration-300 absolute top-0.5 ${isDarkMode ? 'translate-x-8' : 'translate-x-0.5'}`}
             />
           </button>
         </div>

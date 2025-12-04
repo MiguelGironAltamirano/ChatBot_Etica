@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useCallback } from 'react'
 import type { Message } from '../../types/chat'
 import MessageBubble from './MessageBubble'
 
@@ -13,11 +13,11 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isTyping, fontSizeS
     const containerRef = useRef<HTMLDivElement>(null)
     const [shouldAutoScroll, setShouldAutoScroll] = React.useState(true)
 
-    const scrollToBottom = () => {
+    const scrollToBottom = useCallback(() => {
         if (shouldAutoScroll) {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
         }
-    }
+    }, [shouldAutoScroll])
 
     const handleScroll = () => {
         if (containerRef.current) {
@@ -29,7 +29,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isTyping, fontSizeS
 
     useEffect(() => {
         scrollToBottom()
-    }, [messages, isTyping, shouldAutoScroll])
+    }, [messages, isTyping, scrollToBottom])
 
     return (
         <div
@@ -47,7 +47,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isTyping, fontSizeS
 
             {isTyping && (
                 <div className="flex gap-3 animate-[fadeIn_0.3s_ease-out]">
-                    <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-400 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm text-xl
+                    <div className="w-10 h-10 bg-linear-to-br from-teal-500 to-teal-400 rounded-full flex items-center justify-center shrink-0 shadow-sm text-xl
                         dark:from-teal-600 dark:to-teal-500" // Adaptar color del ícono del bot
                     >
                         <span>🤖</span>
