@@ -26,13 +26,13 @@ const useSettings = () => {
   });
 
   useEffect(() => {
-    const body = document.body;
+    const root = document.documentElement; // Usar <html> en lugar de <body>
     
     if (settings.isDarkMode) {
-      body.classList.add('dark');
+      root.classList.add('dark');
       localStorage.setItem('isDarkMode', 'true');
     } else {
-      body.classList.remove('dark');
+      root.classList.remove('dark');
       localStorage.setItem('isDarkMode', 'false');
     }
     

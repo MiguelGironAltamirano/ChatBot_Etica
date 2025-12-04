@@ -29,7 +29,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, fontSizeStyle })
     >
       {/* 2. Ícono del Bot (solo si no es del usuario) */}
       {!isUser && (
-        <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-400 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm text-xl
+        <div className="w-10 h-10 bg-linear-to-br from-teal-500 to-teal-400 rounded-full flex items-center justify-center shrink-0 shadow-sm text-xl
             dark:from-teal-600 dark:to-teal-500" // Clases Dark Mode para el icono del bot
         >
           <span>🤖</span>
@@ -44,7 +44,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, fontSizeStyle })
         // 5. Aplicar clases de Dark Mode
         className={`max-w-[90%] md:max-w-[70%] px-3 py-2.5 md:px-4 md:py-3.5 rounded-[18px] shadow-sm ${
           isUser
-            ? "bg-gradient-to-br from-teal-500 to-teal-400 text-white rounded-br-sm dark:from-teal-600 dark:to-teal-500" // Usuario: fondo oscuro, texto blanco
+            ? "bg-linear-to-br from-teal-500 to-teal-400 text-white rounded-br-sm dark:from-teal-600 dark:to-teal-500" // Usuario: fondo oscuro, texto blanco
             : "bg-white border border-gray-200 text-gray-800 rounded-bl-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200" // Bot: fondo oscuro/gris, texto claro
         }`}
       >

@@ -37,7 +37,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     <div className="min-h-screen bg-teal-50 dark:bg-gray-900 flex items-center justify-center p-0 md:p-6 transition-colors duration-300">
       
       {/* Contenedor del Chat: Se adapta al fondo del chat */}
-      <div className="w-full max-w-4xl h-[100dvh] md:h-[90vh] bg-white dark:bg-gray-800 md:rounded-3xl shadow-2xl flex flex-col overflow-hidden transition-colors duration-300">
+      <div className="w-full max-w-4xl h-dvh md:h-[90vh] bg-white dark:bg-gray-800 md:rounded-3xl shadow-2xl flex flex-col overflow-hidden transition-colors duration-300">
 
         {/* 3. ChatHeader: Le pasamos la función para abrir AJUSTES (además de privacidad) */}
         <ChatHeader 
@@ -46,8 +46,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         />
 
         {/* Privacy Notice Banner: Se adapta al modo oscuro */}
-        <div className="bg-amber-50 border-l-4 border-amber-500 px-4 py-3 flex items-center gap-3 border-b border-gray-200
-            dark:bg-amber-900/30 dark:border-amber-700 dark:border-gray-700">
+        <div className="bg-amber-50 border-l-4 border-l-amber-500 px-4 py-3 flex items-center gap-3 border-b border-b-gray-200
+            dark:bg-amber-900/30 dark:border-l-amber-600 dark:border-b-gray-700">
           <span className="text-2xl">🔒</span>
           <p className="text-sm text-gray-800 dark:text-gray-300 flex-1 m-0">
             <strong>Tu privacidad es importante.</strong>{' '}
