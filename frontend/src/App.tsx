@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ChatInterface from './components/ChatInterface';
 import useSettings from './hooks/useSettings'; 
 import SettingsModal from './components/chat/SettingsModal'; 
+import DownloadAppBanner from './components/chat/DownloadAppBanner'; 
 
 function App() {
   const { 
@@ -33,6 +34,9 @@ function App() {
         minFontSize={MIN_FONT_SIZE}
         maxFontSize={MAX_FONT_SIZE}
       />
+
+      {/* Banner de descarga para móviles */}
+      <DownloadAppBanner />
     </div>
   );
 }
