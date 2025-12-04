@@ -17,87 +17,81 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     env:
-      # Use secrets.VITE_API_URL if defined in GitHub Settings, otherwise use manual input or default
       API_URL: ${{ github.event.inputs.vite_api_url || 'https://chatbot-etica.onrender.com/api' }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
-      
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-      
+
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 8
-      
+
       - name: Install frontend dependencies
         working-directory: ./frontend
         run: pnpm install
-      
+
       - name: Create .env file
         working-directory: ./frontend
         run: |
           echo "VITE_API_URL=$API_URL" > .env
           cat .env
-      
+
       - name: Build frontend
         working-directory: ./frontend
         run: pnpm run build
-      
+
       - name: Sync Capacitor
         working-directory: ./frontend
         run: npx cap sync android
-      
-      - name: Build Android APK (Debug)
+
+      - name: Build Debug APK
         working-directory: ./frontend/android
         run: ./gradlew assembleDebug
-      
-      - name: Build Android APK (Release)
+
+      - name: Try Build Release APK (unsigned)
         working-directory: ./frontend/android
-        run: ./gradlew assembleRelease
-        continue-on-error: true
+        run: ./gradlew assembleRelease || echo "Release build failed (no signing)"
       
-      - name: Upload Debug APK
+      - name: Upload Debug APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
           path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
-      
-      - name: Upload Release APK
+
+      - name: Upload Release APK artifact (if exists)
+        if: ${{ hashFiles('frontend/android/app/build/outputs/apk/release/app-release-unsigned.apk') != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: app-release
           path: frontend/android/app/build/outputs/apk/release/app-release-unsigned.apk
-          retention-days: 30
-        continue-on-error: true
-      
-      - name: Create Release
+
+      # PUBLICACIÓN EN GITHUB RELEASES
+      - name: Create GitHub Release (automatic tag)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ github.run_number }}
-          name: Release ${{ github.run_number }}
+          tag_name: build-${{ github.run_number }}
+          name: Build ${{ github.run_number }}
           files: |
             frontend/android/app/build/outputs/apk/debug/app-debug.apk
             frontend/android/app/build/outputs/apk/release/app-release-unsigned.apk
-          draft: false
-          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true

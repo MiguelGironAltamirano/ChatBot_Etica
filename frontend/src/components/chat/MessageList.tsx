@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useCallback } from 'react'
 import type { Message } from '../../types/chat'
 import MessageBubble from './MessageBubble'
 
@@ -13,11 +13,11 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isTyping, fontSizeS
     const containerRef = useRef<HTMLDivElement>(null)
     const [shouldAutoScroll, setShouldAutoScroll] = React.useState(true)
 
-    const scrollToBottom = () => {
+    const scrollToBottom = useCallback(() => {
         if (shouldAutoScroll) {
             messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
         }
-    }
+    }, [shouldAutoScroll])
 
     const handleScroll = () => {
         if (containerRef.current) {
@@ -29,7 +29,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isTyping, fontSizeS
 
     useEffect(() => {
         scrollToBottom()
-    }, [messages, isTyping, shouldAutoScroll])
+    }, [messages, isTyping, scrollToBottom])
 
     return (
         <div
